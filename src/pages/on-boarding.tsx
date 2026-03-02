@@ -5,6 +5,7 @@ import { useOnboarding } from "@/modules/on-boarding/context";
 import { CreateMenuStep } from "@/modules/on-boarding/steps/create-menu";
 import { RestaurantProfileStep } from "@/modules/on-boarding/steps/restaurant-profile";
 import { SetupTablesStep } from "@/modules/on-boarding/steps/setup-tables";
+import { PrintQRCodesStep } from "@/modules/on-boarding/steps/print-qr-codes";
 import { useSaveOnboarding } from "@/modules/on-boarding/queries/use-save-onboarding";
 
 export default function OnBoardingPage() {
@@ -56,11 +57,7 @@ export default function OnBoardingPage() {
                 tables: data,
               },
               {
-                onSuccess: () => {
-                  queryClient.invalidateQueries({
-                    queryKey: ["onboarding-status"],
-                  });
-                },
+                onSuccess: () => goToStep(3),
                 onError: (err) =>
                   toast.error("Failed to save onboarding data", {
                     description: err.message,
@@ -69,6 +66,14 @@ export default function OnBoardingPage() {
             );
           }}
           onBack={() => goToStep(1)}
+        />
+      )}
+      {currentStep === 3 && (
+        <PrintQRCodesStep
+          onDone={() => {
+            goToStep(4);
+            queryClient.invalidateQueries({ queryKey: ["onboarding-status"] });
+          }}
         />
       )}
     </div>

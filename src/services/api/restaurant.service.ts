@@ -19,6 +19,9 @@ export async function updateRestaurant(
   throw new Error("API restaurant service: not implemented");
 }
 
-export async function getUniqueSlug(_baseSlug: string): Promise<string> {
+export async function getUniqueSlug(
+  _baseSlug: string,
+  _excludeId?: string,
+): Promise<string> {
   throw new Error("API restaurant service: not implemented");
 }

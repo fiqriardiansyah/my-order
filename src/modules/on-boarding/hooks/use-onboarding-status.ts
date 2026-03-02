@@ -31,6 +31,7 @@ export function useOnboardingStatus() {
         isComplete: !!restaurant?.name && restaurant.slug !== user?.id,
         restaurantId: data?.restaurant_id,
         restaurantName: restaurant?.name ?? null,
+        restaurantSlug: restaurant?.slug ?? null,
         restaurantLogo: restaurant?.logo_url ?? null,
       };
     },

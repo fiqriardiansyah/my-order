@@ -1,23 +1,23 @@
 import { Wheat } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
+import { NavUser } from "@/components/layout/nav-user";
+import Stepper, { type StepItem } from "@/components/stepper";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import Stepper, { type StepItem } from "@/components/stepper";
-import { NavUser } from "@/components/layout/nav-user";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/modules/auth/context";
 import { useOnboarding } from "@/modules/on-boarding/context";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
 import { useProfile } from "@/modules/setting/profile/use-profile";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const ONBOARDING_STEPS: StepItem[] = [
   {
@@ -33,6 +33,7 @@ const ONBOARDING_STEPS: StepItem[] = [
 
 export function AppSidebar() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { currentStep } = useOnboarding();
   const { data: onboardingStatus, isLoading } = useOnboardingStatus();
 
@@ -51,7 +52,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="default" className="overflow-hidden">
+            <SidebarHeader className="overflow-hidden flex flex-col items-center">
               {isOnboardingComplete && restaurantName ? (
                 <Avatar className="size-8 shrink-0 rounded-lg">
                   <AvatarImage
@@ -75,7 +76,7 @@ export function AppSidebar() {
                   </span>
                 )}
               </div>
-            </SidebarMenuButton>
+            </SidebarHeader>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -94,13 +95,25 @@ export function AppSidebar() {
             ))}
           </div>
         ) : !isOnboardingComplete ? (
-          <Stepper steps={ONBOARDING_STEPS} currentStep={currentStep} />
+          <div
+            className="cursor-pointer"
+            onClick={() => navigate("/")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate("/")}
+          >
+            <Stepper steps={ONBOARDING_STEPS} currentStep={currentStep} />
+          </div>
         ) : null}
         {/* App navigation goes here once onboarding is complete */}
       </SidebarContent>
 
       <SidebarFooter>
-        <NavUser name={name} email={email} avatarUrl={profile?.avatar_url ?? undefined} />
+        <NavUser
+          name={name}
+          email={email}
+          avatarUrl={profile?.avatar_url ?? undefined}
+        />
       </SidebarFooter>
 
       <SidebarRail />

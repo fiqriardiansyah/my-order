@@ -8,3 +8,6 @@ const SERVICE = import.meta.env.VITE_SERVICE ?? "supabase";
 
 export const { createRestaurant, updateRestaurant, getUniqueSlug } =
   SERVICE === "api" ? api : supabase;
+
+// Pure string utility — not service-specific
+export { slugify } from "./supabase/restaurant.service";

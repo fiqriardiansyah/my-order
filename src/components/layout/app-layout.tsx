@@ -2,12 +2,13 @@ import { Outlet } from "react-router-dom";
 
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { OnboardingProvider } from "@/modules/on-boarding/context";
+import { OnboardingProvider, useOnboarding } from "@/modules/on-boarding/context";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
 import OnBoardingPage from "@/pages/on-boarding";
 
 export function AppContent() {
   const { data, isLoading } = useOnboardingStatus();
+  const { currentStep } = useOnboarding();
 
   if (isLoading) {
     return (
@@ -17,7 +18,9 @@ export function AppContent() {
     );
   }
 
-  if (!data?.isComplete) {
+  // Keep showing the onboarding page while the user is on step 3 (QR codes),
+  // even if isComplete flips to true from a background refetch after the save.
+  if (!data?.isComplete || currentStep === 3) {
     return <OnBoardingPage />;
   }
 

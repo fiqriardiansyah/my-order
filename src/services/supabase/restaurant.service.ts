@@ -4,12 +4,30 @@ import type {
   RestaurantRecord,
 } from "../interfaces/restaurant.interface";
 
-export async function getUniqueSlug(baseSlug: string): Promise<string> {
-  // Fetch all slugs that are exactly baseSlug or start with baseSlug-
-  const { data } = await supabase
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export async function getUniqueSlug(
+  baseSlug: string,
+  excludeId?: string,
+): Promise<string> {
+  // Fetch all slugs that are exactly baseSlug or start with baseSlug-,
+  // excluding the restaurant being updated so it doesn't conflict with itself.
+  let query = supabase
     .from("restaurants")
     .select("slug")
     .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-%`);
+
+  if (excludeId) {
+    query = query.neq("id", excludeId);
+  }
+
+  const { data } = await query;
 
   if (!data || data.length === 0) return baseSlug;
 

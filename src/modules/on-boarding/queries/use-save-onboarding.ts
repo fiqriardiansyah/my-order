@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { createRestaurant, updateRestaurant, getUniqueSlug } from "@/services/restaurant";
+import { createRestaurant, updateRestaurant, getUniqueSlug, slugify } from "@/services/restaurant";
 import { createMenu } from "@/services/menu";
 import { createTableZones, createTables } from "@/services/tables";
 import { generateTables } from "../steps/setup-tables/utils";
@@ -7,14 +7,6 @@ import { supabase } from "@/lib/supabase";
 import type { RestaurantProfileFormValues } from "../schemas/restaurant-profile.schema";
 import type { CreateMenuFormValues } from "../schemas/create-menu.schema";
 import type { SetupTablesFormValues } from "../schemas/setup-tables.schema";
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 interface SaveOnboardingInput {
   restaurantProfile: RestaurantProfileFormValues;
@@ -40,9 +32,16 @@ async function saveOnboarding({
 
   if (profileError) throw profileError;
 
+  // 2. Update the pre-created placeholder restaurant, or create one for users
+  //    who signed up before the auto-create trigger was deployed.
+  let restaurantId = profile.restaurant_id as string | null;
+
   const restaurantData = {
     name: restaurantProfile.name,
-    slug: await getUniqueSlug(slugify(restaurantProfile.name)),
+    slug: await getUniqueSlug(
+      slugify(restaurantProfile.name),
+      restaurantId ?? undefined,
+    ),
     logo_url: restaurantProfile.logo_url || null,
     address: restaurantProfile.address || null,
     phone: restaurantProfile.phone || null,
@@ -50,10 +49,6 @@ async function saveOnboarding({
     timezone: restaurantProfile.timezone,
     country_code: restaurantProfile.country_code,
   };
-
-  // 2. Update the pre-created placeholder restaurant, or create one for users
-  //    who signed up before the auto-create trigger was deployed.
-  let restaurantId = profile.restaurant_id as string | null;
   if (restaurantId) {
     await updateRestaurant(restaurantId, restaurantData);
   } else {
@@ -69,24 +64,27 @@ async function saveOnboarding({
   // RLS checks (menus, categories, items, zones, tables).
   await supabase.auth.refreshSession();
 
-  // 3. Save menu (menu → categories → items)
-  await createMenu(restaurantId, {
-    name: menu.menu_name,
-    categories: menu.categories.map((cat, i) => ({
-      name: cat.name,
-      sort_order: i,
-      items: cat.items.map((item, j) => ({
-        name: item.name,
-        base_price: item.base_price,
-        is_available: item.is_available,
-        sort_order: j,
-      })),
-    })),
-  });
-
-  // 4. Save tables (zones → tables)
+  // 3 + 4a. Save menu and zones in parallel (independent operations)
   const { count, namingStyle, zones } = tables;
-  const zoneRecords = await createTableZones(restaurantId, zones);
+  const [, zoneRecords] = await Promise.all([
+    createMenu(restaurantId, {
+      name: menu.menu_name,
+      categories: menu.categories.map((cat, i) => ({
+        name: cat.name,
+        sort_order: i,
+        items: cat.items.map((item, j) => ({
+          name: item.name,
+          base_price: item.base_price,
+          is_available: item.is_available,
+          sort_order: j,
+        })),
+      })),
+    }),
+    createTableZones(restaurantId, zones),
+  ]);
+
+  // 4b. Save tables (depends on zone IDs from step 4a)
+
   const zoneIdMap = new Map(zoneRecords.map((z) => [z.name, z.id]));
   const generated = generateTables(count, namingStyle, zones);
   await createTables(
