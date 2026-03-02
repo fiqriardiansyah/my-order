@@ -1,0 +1,5 @@
+-- ============================================================
+-- 8. SEED DATA (for local development)
+-- ============================================================
+-- Run this only in development, not production.
+-- Uncomment if needed.
