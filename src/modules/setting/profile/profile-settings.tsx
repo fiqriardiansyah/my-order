@@ -119,7 +119,7 @@ function ProfileForm({ profile }: { profile: ProfileData }) {
               <Label>Role</Label>
               <div className="flex h-9 items-center">
                 <Badge variant="secondary" className="capitalize">
-                  {profile.role.replace(/_/g, " ")}
+                  {profile.role?.replace(/_/g, " ")}
                 </Badge>
               </div>
             </div>
