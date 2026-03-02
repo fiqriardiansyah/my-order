@@ -99,18 +99,14 @@ CREATE TABLE restaurant_settings (
 -- Staff accounts linked to auth.users (Supabase Auth) by UUID.
 -- NOTE: never INSERT into auth.users directly.
 --       Call supabase.auth.signUp() — the trigger in 02_functions.sql
---       auto-creates both the placeholder restaurant and this row.
+--       auto-creates a placeholder restaurant and a restaurant_members row.
 --
--- restaurant_id is nullable: the trigger sets it immediately,
--- but NULL is allowed so signup never hard-fails on a race condition.
+-- Restaurant membership and per-restaurant roles live in restaurant_members.
 
 CREATE TABLE user_profiles (
   id              UUID          PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  restaurant_id   UUID          REFERENCES restaurants(id),
   full_name       VARCHAR(255)  NOT NULL,
   avatar_url      TEXT,
-  role            VARCHAR(50)   NOT NULL DEFAULT 'floor_staff',
-  -- Roles: 'owner' | 'manager' | 'floor_staff' | 'cashier' | 'kitchen'
   pin_hash        TEXT,
   is_active       BOOLEAN       NOT NULL DEFAULT true,
   last_login_at   TIMESTAMPTZ,
@@ -119,8 +115,33 @@ CREATE TABLE user_profiles (
   deleted_at      TIMESTAMPTZ
 );
 
-CREATE INDEX idx_user_profiles_restaurant
-  ON user_profiles(restaurant_id)
+
+-- ─── restaurant_members ───────────────────────────────────────
+-- Many-to-many: one user can own or staff multiple restaurants.
+-- This is the authoritative source for which restaurants a user
+-- belongs to and what role they hold in each.
+-- custom_jwt_claims() reads from here to populate JWT claims.
+
+CREATE TABLE restaurant_members (
+  id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  restaurant_id   UUID          NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  user_id         UUID          NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+  role            VARCHAR(50)   NOT NULL DEFAULT 'owner',
+  -- Roles: 'owner' | 'manager' | 'floor_staff' | 'cashier' | 'kitchen'
+  is_active       BOOLEAN       NOT NULL DEFAULT true,
+  created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  deleted_at      TIMESTAMPTZ,
+
+  UNIQUE(restaurant_id, user_id)
+);
+
+CREATE INDEX idx_restaurant_members_user
+  ON restaurant_members(user_id)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX idx_restaurant_members_restaurant
+  ON restaurant_members(restaurant_id)
   WHERE deleted_at IS NULL;
 
 

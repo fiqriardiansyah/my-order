@@ -109,14 +109,39 @@ type Database = {
         >;
       };
 
+      // ── restaurant_members ──────────────────────────────────
+      restaurant_members: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          user_id: string;
+          role: "owner" | "manager" | "floor_staff" | "cashier" | "kitchen";
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          user_id: string;
+          role?: "owner" | "manager" | "floor_staff" | "cashier" | "kitchen";
+          is_active?: boolean;
+        };
+        Update: {
+          role?: "owner" | "manager" | "floor_staff" | "cashier" | "kitchen";
+          is_active?: boolean;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+      };
+
       // ── user_profiles ───────────────────────────────────────
       user_profiles: {
         Row: {
           id: string;
-          restaurant_id: string;
           full_name: string;
           avatar_url: string | null;
-          role: "owner" | "manager" | "floor_staff" | "cashier" | "kitchen";
           pin_hash: string | null;
           is_active: boolean;
           last_login_at: string | null;
@@ -126,17 +151,14 @@ type Database = {
         };
         Insert: {
           id: string; // must match auth.users.id
-          restaurant_id: string;
           full_name: string;
           avatar_url?: string | null;
-          role?: "owner" | "manager" | "floor_staff" | "cashier" | "kitchen";
           pin_hash?: string | null;
           is_active?: boolean;
         };
         Update: {
           full_name?: string;
           avatar_url?: string | null;
-          role?: "owner" | "manager" | "floor_staff" | "cashier" | "kitchen";
           pin_hash?: string | null;
           is_active?: boolean;
           last_login_at?: string | null;
@@ -765,6 +787,7 @@ type UpdateTables<T extends keyof Database["public"]["Tables"]> =
 // Individual table row types (import these in components)
 type Restaurant = Tables<"restaurants">;
 type RestaurantSettings = Tables<"restaurant_settings">;
+type RestaurantMember = Tables<"restaurant_members">;
 type UserProfile = Tables<"user_profiles">;
 type TableZone = Tables<"table_zones">;
 type Table = Tables<"tables">;
@@ -788,5 +811,5 @@ type ActivityLog = Tables<"activity_logs">;
 type OrderStatus = Order["status"];
 type SessionStatus = TableSession["status"];
 type KitchenStatus = OrderItem["kitchen_status"];
-type UserRole = UserProfile["role"];
+type UserRole = RestaurantMember["role"];
 type PaymentMethod = Payment["payment_method"];

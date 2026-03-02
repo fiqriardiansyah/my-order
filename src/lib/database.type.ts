@@ -1283,6 +1283,54 @@ export type Database = {
           },
         ]
       }
+      restaurant_members: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_active: boolean
+          restaurant_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          restaurant_id: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          restaurant_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_members_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -1293,8 +1341,6 @@ export type Database = {
           is_active: boolean
           last_login_at: string | null
           pin_hash: string | null
-          restaurant_id: string
-          role: string
           updated_at: string
         }
         Insert: {
@@ -1306,8 +1352,6 @@ export type Database = {
           is_active?: boolean
           last_login_at?: string | null
           pin_hash?: string | null
-          restaurant_id: string
-          role?: string
           updated_at?: string
         }
         Update: {
@@ -1319,19 +1363,9 @@ export type Database = {
           is_active?: boolean
           last_login_at?: string | null
           pin_hash?: string | null
-          restaurant_id?: string
-          role?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_profiles_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: false
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {

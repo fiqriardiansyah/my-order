@@ -18,7 +18,10 @@
 
 -- Returns the restaurant_id for the current authenticated user.
 -- Fast path: reads the JWT claim injected by custom_jwt_claims().
--- Fallback: direct lookup in user_profiles (works without the hook).
+-- Fallback: queries restaurant_members directly (works without the JWT hook,
+-- or when the JWT hasn't been refreshed yet after adding a new restaurant).
+-- For multi-restaurant users the fallback returns the most recently joined
+-- restaurant — same tie-break used by custom_jwt_claims().
 CREATE OR REPLACE FUNCTION auth_restaurant_id()
 RETURNS UUID
 LANGUAGE sql
@@ -28,7 +31,15 @@ SET search_path = public
 AS $$
   SELECT COALESCE(
     NULLIF(auth.jwt() ->> 'restaurant_id', '')::uuid,
-    (SELECT restaurant_id FROM public.user_profiles WHERE id = auth.uid())
+    (
+      SELECT restaurant_id
+      FROM public.restaurant_members
+      WHERE user_id   = auth.uid()
+        AND is_active = true
+        AND deleted_at IS NULL
+      ORDER BY created_at DESC
+      LIMIT 1
+    )
   );
 $$;
 
@@ -68,6 +79,7 @@ $$;
 ALTER TABLE restaurants             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE restaurant_settings     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_profiles           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE restaurant_members      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE table_zones             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tables                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE qr_codes                ENABLE ROW LEVEL SECURITY;
@@ -116,6 +128,20 @@ CREATE POLICY "staff_select_settings"
   ON restaurant_settings FOR SELECT
   USING (restaurant_id = auth_restaurant_id());
 
+-- Allows inserting settings for any restaurant the user is an owner of,
+-- not just the currently-active one (needed when creating additional restaurants).
+CREATE POLICY "owner_insert_settings"
+  ON restaurant_settings FOR INSERT
+  WITH CHECK (
+    restaurant_id IN (
+      SELECT restaurant_id
+      FROM public.restaurant_members
+      WHERE user_id = auth.uid()
+        AND role = 'owner'
+        AND deleted_at IS NULL
+    )
+  );
+
 CREATE POLICY "owner_update_settings"
   ON restaurant_settings FOR UPDATE
   USING (restaurant_id = auth_restaurant_id() AND auth_has_role(ARRAY['owner', 'manager']))
@@ -124,16 +150,22 @@ CREATE POLICY "owner_update_settings"
 
 -- ─── user_profiles ───────────────────────────────────────────
 
--- Always lets a user read their own row — even when restaurant_id is NULL
--- (e.g. right after signup, before the JWT carries the restaurant claim).
 CREATE POLICY "user_select_own_profile"
   ON user_profiles FOR SELECT
   USING (id = auth.uid());
 
 -- Staff can see all profiles in their restaurant (staff management UI).
+-- Membership is checked through restaurant_members, not user_profiles.
 CREATE POLICY "staff_select_restaurant_profiles"
   ON user_profiles FOR SELECT
-  USING (restaurant_id = auth_restaurant_id());
+  USING (
+    id IN (
+      SELECT user_id
+      FROM public.restaurant_members
+      WHERE restaurant_id = auth_restaurant_id()
+        AND deleted_at IS NULL
+    )
+  );
 
 -- Staff can update their own profile only.
 CREATE POLICY "staff_update_own_profile"
@@ -144,8 +176,48 @@ CREATE POLICY "staff_update_own_profile"
 -- Owners/managers can update any profile within their restaurant.
 CREATE POLICY "owner_update_any_profile"
   ON user_profiles FOR UPDATE
-  USING (restaurant_id = auth_restaurant_id() AND auth_has_role(ARRAY['owner', 'manager']))
-  WITH CHECK (restaurant_id = auth_restaurant_id());
+  USING (
+    auth_has_role(ARRAY['owner', 'manager'])
+    AND id IN (
+      SELECT user_id
+      FROM public.restaurant_members
+      WHERE restaurant_id = auth_restaurant_id()
+        AND deleted_at IS NULL
+    )
+  )
+  WITH CHECK (
+    id IN (
+      SELECT user_id
+      FROM public.restaurant_members
+      WHERE restaurant_id = auth_restaurant_id()
+        AND deleted_at IS NULL
+    )
+  );
+
+
+-- ─── restaurant_members ───────────────────────────────────────
+
+-- Users can see their own memberships across all restaurants.
+CREATE POLICY "user_select_own_memberships"
+  ON restaurant_members FOR SELECT
+  USING (user_id = auth.uid());
+
+-- Staff can see all members within their currently-active restaurant.
+CREATE POLICY "staff_select_restaurant_members"
+  ON restaurant_members FOR SELECT
+  USING (restaurant_id = auth_restaurant_id());
+
+-- Owners can add/update/remove members within their restaurant.
+CREATE POLICY "owner_manage_restaurant_members"
+  ON restaurant_members FOR ALL
+  USING (
+    restaurant_id = auth_restaurant_id()
+    AND auth_has_role(ARRAY['owner'])
+  )
+  WITH CHECK (
+    restaurant_id = auth_restaurant_id()
+    AND auth_has_role(ARRAY['owner'])
+  );
 
 
 -- ─── table_zones ─────────────────────────────────────────────

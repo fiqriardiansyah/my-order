@@ -35,20 +35,16 @@ BEGIN
   VALUES ('', NEW.id::text)
   RETURNING id INTO v_restaurant_id;
 
-  INSERT INTO public.user_profiles (
-    id,
-    restaurant_id,
-    full_name,
-    role,
-    is_active
-  )
+  INSERT INTO public.user_profiles (id, full_name, is_active)
   VALUES (
     NEW.id,
-    v_restaurant_id,
     COALESCE(NEW.raw_user_meta_data ->> 'full_name', split_part(NEW.email, '@', 1)),
-    'owner',
     true
   );
+
+  -- Record ownership in restaurant_members (source of truth for restaurant access + roles).
+  INSERT INTO public.restaurant_members (restaurant_id, user_id, role)
+  VALUES (v_restaurant_id, NEW.id, 'owner');
 
   RETURN NEW;
 END;
@@ -272,13 +268,16 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  user_profile  RECORD;
-  claims        JSONB;
+  v_user_id       UUID;
+  v_is_active     BOOLEAN;
+  v_membership    RECORD;
+  claims          JSONB;
 BEGIN
-  SELECT restaurant_id, role, is_active
-  INTO user_profile
+  v_user_id := (event ->> 'user_id')::uuid;
+
+  SELECT is_active INTO v_is_active
   FROM public.user_profiles
-  WHERE id = (event ->> 'user_id')::uuid;
+  WHERE id = v_user_id;
 
   -- No profile yet (e.g. signup trigger hasn't fired) — return unchanged
   IF NOT FOUND THEN
@@ -286,13 +285,31 @@ BEGIN
   END IF;
 
   -- Deactivated account — omit claims so app layer detects unauthorized state
-  IF NOT user_profile.is_active THEN
+  IF NOT v_is_active THEN
+    RETURN event;
+  END IF;
+
+  -- Resolve the active restaurant + role from restaurant_members.
+  -- If the user has one restaurant, it is used automatically.
+  -- If they have multiple, the most recently created membership is used as the
+  -- default until the app implements explicit restaurant switching.
+  SELECT rm.restaurant_id, rm.role
+  INTO v_membership
+  FROM public.restaurant_members rm
+  WHERE rm.user_id    = v_user_id
+    AND rm.is_active  = true
+    AND rm.deleted_at IS NULL
+  ORDER BY rm.created_at DESC
+  LIMIT 1;
+
+  -- No membership yet — return claims without restaurant context
+  IF NOT FOUND THEN
     RETURN event;
   END IF;
 
   claims := event -> 'claims';
-  claims := jsonb_set(claims, '{restaurant_id}', to_jsonb(user_profile.restaurant_id::text));
-  claims := jsonb_set(claims, '{user_role}',     to_jsonb(user_profile.role));
+  claims := jsonb_set(claims, '{restaurant_id}', to_jsonb(v_membership.restaurant_id::text));
+  claims := jsonb_set(claims, '{user_role}',     to_jsonb(v_membership.role));
 
   RETURN jsonb_set(event, '{claims}', claims);
 END;

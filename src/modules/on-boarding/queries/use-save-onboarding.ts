@@ -19,22 +19,25 @@ async function saveOnboarding({
   menu,
   tables,
 }: SaveOnboardingInput): Promise<void> {
-  // 1. Get the restaurant_id that was pre-created at signup via DB trigger.
+  // 1. Get the restaurant_id from restaurant_members (pre-created at signup via DB trigger).
   //    The JWT already carries this claim so all RLS checks pass immediately.
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { data: profile, error: profileError } = await supabase
-    .from("user_profiles")
+  const { data: membership, error: membershipError } = await supabase
+    .from("restaurant_members")
     .select("restaurant_id")
-    .eq("id", user.id)
-    .single();
+    .eq("user_id", user.id)
+    .eq("role", "owner")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (profileError) throw profileError;
+  if (membershipError) throw membershipError;
 
   // 2. Update the pre-created placeholder restaurant, or create one for users
   //    who signed up before the auto-create trigger was deployed.
-  let restaurantId = profile.restaurant_id as string | null;
+  let restaurantId = membership?.restaurant_id ?? null;
 
   const restaurantData = {
     name: restaurantProfile.name,
@@ -55,9 +58,8 @@ async function saveOnboarding({
     const { id } = await createRestaurant(restaurantData);
     restaurantId = id;
     await supabase
-      .from("user_profiles")
-      .update({ restaurant_id: restaurantId })
-      .eq("id", user.id);
+      .from("restaurant_members")
+      .insert({ restaurant_id: restaurantId, user_id: user.id, role: "owner" });
   }
 
   // Refresh the JWT so the restaurant_id claim is present for all subsequent
