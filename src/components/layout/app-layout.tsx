@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -24,12 +24,7 @@ export function AppContent() {
     return <OnBoardingPage />;
   }
 
-  // TODO: render main app pages here once onboarding is done
-  return (
-    <div className="flex min-h-svh items-center justify-center text-muted-foreground">
-      Dashboard coming soon
-    </div>
-  );
+  return <Navigate to="/dashboard" replace />;
 }
 
 export function AppLayout() {

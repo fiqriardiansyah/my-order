@@ -1,6 +1,7 @@
 import { Wheat } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import { NavMain } from "@/components/layout/nav-main";
 import { NavUser } from "@/components/layout/nav-user";
 import Stepper, { type StepItem } from "@/components/stepper";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -105,7 +106,7 @@ export function AppSidebar() {
             <Stepper steps={ONBOARDING_STEPS} currentStep={currentStep} />
           </div>
         ) : null}
-        {/* App navigation goes here once onboarding is complete */}
+        {isOnboardingComplete && <NavMain />}
       </SidebarContent>
 
       <SidebarFooter>

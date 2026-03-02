@@ -9,6 +9,12 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { AppLayout, AppContent } from "@/components/layout/app-layout";
 import AuthPage from "@/pages/auth";
+import DashboardPage from "@/pages/dashboard";
+import MenuPage from "@/pages/menu";
+import TablesPage from "@/pages/tables";
+import OrdersPage from "@/pages/orders";
+import StaffPage from "@/pages/staff";
+import ReportsPage from "@/pages/reports";
 import SettingPage from "@/pages/setting";
 
 import "./index.css";
@@ -32,6 +38,12 @@ createRoot(document.getElementById("root")!).render(
                 }
               >
                 <Route path="/" element={<AppContent />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/menu" element={<MenuPage />} />
+                <Route path="/tables" element={<TablesPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/staff" element={<StaffPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/setting/*" element={<SettingPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
