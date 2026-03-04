@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-export const variantSchema = z.object({
+const variantSchema = z.object({
   name: z.string().min(1, "Nama varian wajib diisi"),
   price_modifier: z
     .number({ error: "Harga harus berupa angka" })
     .min(0, "Harga tidak boleh negatif"),
 });
 
-export const modifierSchema = z.object({
+const modifierSchema = z.object({
   name: z.string().min(1, "Nama modifier wajib diisi"),
   price_modifier: z
     .number({ error: "Harga harus berupa angka" })

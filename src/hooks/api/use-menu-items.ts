@@ -7,7 +7,7 @@ export type { MenuItemRow, StatusFilter };
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
-export interface MenuItemDetail {
+interface MenuItemDetail {
   id: string;
   name: string;
   description: string | null;
