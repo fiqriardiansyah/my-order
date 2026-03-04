@@ -1,17 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import type { MenuCategoryDetail } from "@/@types/menu";
+
+export type { MenuCategoryDetail };
 
 // ─── types ────────────────────────────────────────────────────────────────────
-
-export interface MenuCategoryDetail {
-  id: string;
-  name: string;
-  description: string | null;
-  image_url: string | null;
-  is_visible: boolean;
-  sort_order: number;
-  item_count: number;
-}
 
 export interface CreateMenuCategoryValues {
   restaurantId: string;

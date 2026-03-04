@@ -1,26 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { MenuItemFormValues } from "@/modules/menu/schemas/menu-item.schema";
+import type { MenuItemRow, StatusFilter } from "@/@types/menu";
+
+export type { MenuItemRow, StatusFilter };
 
 // ─── types ────────────────────────────────────────────────────────────────────
-
-export interface MenuItemRow {
-  id: string;
-  name: string;
-  description: string | null;
-  image_url: string | null;
-  base_price: number;
-  is_available: boolean;
-  category: {
-    id: string;
-    name: string;
-    menu: { id: string; name: string } | null;
-  } | null;
-  variant_count: number;
-  modifier_count: number;
-}
-
-export type StatusFilter = "all" | "available" | "unavailable";
 
 export interface MenuItemDetail {
   id: string;

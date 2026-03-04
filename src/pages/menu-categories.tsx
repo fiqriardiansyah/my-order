@@ -24,24 +24,17 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
-import {
-  useDeleteMenu,
-  useMenusWithCount,
-  useUpdateMenu,
-  type MenuWithCount,
-} from "@/hooks/api/use-menus";
+import type { MenuWithCount, MenuCategoryDetail, MenuItemRow, StatusFilter } from "@/@types/menu";
+import { useDeleteMenu, useMenusWithCount, useUpdateMenu } from "@/hooks/api/use-menus";
 import {
   useDeleteMenuCategory,
   useMenuCategoriesDetail,
   useUpdateMenuCategory,
-  type MenuCategoryDetail,
 } from "@/hooks/api/use-menu-categories";
 import {
   useDeleteMenuItem,
   useMenuItems,
   useToggleMenuItemAvailability,
-  type MenuItemRow,
-  type StatusFilter,
 } from "@/hooks/api/use-menu-items";
 import { CategoryFormDialog } from "@/modules/menu/components/category-form-dialog";
 import { DeleteDialog } from "@/modules/menu/components/delete-dialog";

@@ -1,15 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import type { MenuWithCount } from "@/@types/menu";
+
+export type { MenuWithCount };
 
 // ─── types ────────────────────────────────────────────────────────────────────
-
-export interface MenuWithCount {
-  id: string;
-  name: string;
-  is_active: boolean;
-  is_default: boolean;
-  category_count: number;
-}
 
 export interface CreateMenuValues {
   restaurantId: string;

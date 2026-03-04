@@ -19,12 +19,11 @@ import { SelectMenu } from "@/components/select-menu";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
 import { useMenus } from "@/hooks/api/use-menus";
 import { useMenuCategories } from "@/hooks/api/use-menu-categories";
+import type { MenuItemRow, StatusFilter } from "@/@types/menu";
 import {
   useDeleteMenuItem,
   useMenuItems,
   useToggleMenuItemAvailability,
-  type MenuItemRow,
-  type StatusFilter,
 } from "@/hooks/api/use-menu-items";
 import { CountBadge } from "@/modules/menu/components/count-badge";
 import { DeleteDialog } from "@/modules/menu/components/delete-dialog";

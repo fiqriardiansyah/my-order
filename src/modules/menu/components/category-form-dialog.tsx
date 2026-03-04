@@ -14,11 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  useCreateMenuCategory,
-  useUpdateMenuCategory,
-  type MenuCategoryDetail,
-} from "@/hooks/api/use-menu-categories";
+import type { MenuCategoryDetail } from "@/@types/menu";
+import { useCreateMenuCategory, useUpdateMenuCategory } from "@/hooks/api/use-menu-categories";
 
 const schema = z.object({
   name: z.string().min(1, "Nama kategori wajib diisi"),
