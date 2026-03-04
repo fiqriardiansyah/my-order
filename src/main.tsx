@@ -11,6 +11,8 @@ import { AppLayout, AppContent } from "@/components/layout/app-layout";
 import AuthPage from "@/pages/auth";
 import DashboardPage from "@/pages/dashboard";
 import MenuPage from "@/pages/menu";
+import MenuAddPage from "@/pages/menu-add";
+import MenuCategoriesPage from "@/pages/menu-categories";
 import TablesPage from "@/pages/tables";
 import OrdersPage from "@/pages/orders";
 import StaffPage from "@/pages/staff";
@@ -40,6 +42,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/" element={<AppContent />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/menu" element={<MenuPage />} />
+                <Route path="/menu/add" element={<MenuAddPage />} />
+                <Route
+                  path="/menu/categories"
+                  element={<MenuCategoriesPage />}
+                />
                 <Route path="/tables" element={<TablesPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/staff" element={<StaffPage />} />

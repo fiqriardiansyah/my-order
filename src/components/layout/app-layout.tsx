@@ -1,8 +1,15 @@
 import { Navigate, Outlet } from "react-router-dom";
 
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { OnboardingProvider, useOnboarding } from "@/modules/on-boarding/context";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import {
+  OnboardingProvider,
+  useOnboarding,
+} from "@/modules/on-boarding/context";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
 import OnBoardingPage from "@/pages/on-boarding";
 
@@ -27,17 +34,26 @@ export function AppContent() {
   return <Navigate to="/dashboard" replace />;
 }
 
+// Inner component lives inside SidebarProvider so it can call useSidebar.
+function AppInset() {
+  return (
+    <SidebarInset className="overflow-y-auto">
+      <header className=" z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background px-4">
+        <SidebarTrigger />
+      </header>
+      <div className="flex flex-1 flex-col overflow-x-hidden w-full">
+        <Outlet />
+      </div>
+    </SidebarInset>
+  );
+}
+
 export function AppLayout() {
   return (
     <OnboardingProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger />
-          </header>
-          <Outlet />
-        </SidebarInset>
+        <AppInset />
       </SidebarProvider>
     </OnboardingProvider>
   );
