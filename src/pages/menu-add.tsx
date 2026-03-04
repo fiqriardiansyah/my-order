@@ -1,11 +1,11 @@
+import { X } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { AddMenuItemForm } from "@/modules/menu/components/add-menu-item-form";
 import { useCreateMenuItem } from "@/hooks/api/use-menu-items";
+import { AddMenuItemForm } from "@/modules/menu/components/add-menu-item-form";
 import type { MenuItemFormValues } from "@/modules/menu/schemas/menu-item.schema";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
 
@@ -74,23 +74,7 @@ export default function MenuAddPage() {
       {/* ── header ── */}
       <div className="flex shrink-0 items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground size-8 shrink-0"
-            onClick={() => navigate("/menu")}
-            aria-label="Kembali"
-          >
-            <ArrowLeft className="size-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold leading-tight">
-              Tambah Item Menu
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Tambah item baru ke daftar menu restoran Anda.
-            </p>
-          </div>
+          <h1 className="text-xl font-bold leading-tight">Tambah Item Menu</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button

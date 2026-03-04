@@ -133,7 +133,7 @@ export default function MenuPage() {
     <div className="flex flex-col gap-6 p-5">
       {/* heading */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Menu Items</h1>
+        <h1 className="text-xl font-bold">Menu Items</h1>
         <Button onClick={() => navigate("/menu/add")}>
           <Plus className="size-4" />
           Add Item
@@ -157,7 +157,11 @@ export default function MenuPage() {
           options={menus.map((m) => ({
             value: m.id,
             label: m.name,
-            meta: !m.is_active ? "Inactive" : m.is_default ? "Default" : undefined,
+            meta: !m.is_active
+              ? "Inactive"
+              : m.is_default
+                ? "Default"
+                : undefined,
             disabled: !m.is_active,
           }))}
           value={menuIds}

@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, MoreHorizontal, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +32,17 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
-import type { MenuWithCount, MenuCategoryDetail, MenuItemRow, StatusFilter } from "@/@types/menu";
-import { useDeleteMenu, useMenusWithCount, useUpdateMenu } from "@/hooks/api/use-menus";
+import type {
+  MenuWithCount,
+  MenuCategoryDetail,
+  MenuItemRow,
+  StatusFilter,
+} from "@/@types/menu";
+import {
+  useDeleteMenu,
+  useMenusWithCount,
+  useUpdateMenu,
+} from "@/hooks/api/use-menus";
 import {
   useDeleteMenuCategory,
   useMenuCategoriesDetail,
@@ -82,7 +99,9 @@ function MenuListItem({
     <div
       className={cn(
         "group mx-2 mb-0.5 cursor-pointer rounded-md px-3 py-2.5 transition-colors",
-        isSelected ? "bg-primary/10 ring-1 ring-inset ring-primary/40" : "hover:bg-muted/60",
+        isSelected
+          ? "bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "hover:bg-muted/60",
         !menu.is_active && "opacity-60",
       )}
       onClick={onSelect}
@@ -192,7 +211,9 @@ function CategoryListItem({
     <div
       className={cn(
         "group mx-2 mb-0.5 cursor-pointer rounded-md px-3 py-2.5 transition-colors",
-        isSelected ? "bg-primary/10 ring-1 ring-inset ring-primary/40" : "hover:bg-muted/60",
+        isSelected
+          ? "bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "hover:bg-muted/60",
         !category.is_visible && "opacity-60",
       )}
       onClick={onSelect}
@@ -208,10 +229,7 @@ function CategoryListItem({
             />
           ) : (
             <div
-              className={cn(
-                "size-2.5 rounded-full",
-                dotColor(category.id),
-              )}
+              className={cn("size-2.5 rounded-full", dotColor(category.id))}
             />
           )}
           {!category.is_visible && (
@@ -427,11 +445,20 @@ function ItemsPanel({
             className="h-8 pl-9"
           />
         </div>
-        <Tabs value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+        <Tabs
+          value={status}
+          onValueChange={(v) => setStatus(v as StatusFilter)}
+        >
           <TabsList className="h-8">
-            <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-            <TabsTrigger value="available" className="text-xs">Available</TabsTrigger>
-            <TabsTrigger value="unavailable" className="text-xs">Unavailable</TabsTrigger>
+            <TabsTrigger value="all" className="text-xs">
+              All
+            </TabsTrigger>
+            <TabsTrigger value="available" className="text-xs">
+              Available
+            </TabsTrigger>
+            <TabsTrigger value="unavailable" className="text-xs">
+              Unavailable
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -546,7 +573,7 @@ export default function MenuCategoriesPage() {
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
   return (
-    <div className="flex h-[calc(100svh-3rem)] overflow-hidden">
+    <div className="flex h-[calc(100svh-3rem)]">
       {/* ── Left: Menus ────────────────────────────── */}
       <div className="flex w-52 shrink-0 flex-col border-r">
         <div className="flex items-center justify-between border-b px-4 py-3">
