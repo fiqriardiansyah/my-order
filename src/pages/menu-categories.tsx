@@ -8,7 +8,6 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,10 +48,12 @@ import {
   useUpdateMenuCategory,
 } from "@/hooks/api/use-menu-categories";
 import {
+  useCreateMenuItem,
   useDeleteMenuItem,
   useMenuItems,
   useToggleMenuItemAvailability,
 } from "@/hooks/api/use-menu-items";
+import { AddMenuItemForm } from "@/modules/menu/components/add-menu-item-form";
 import { CategoryFormDialog } from "@/modules/menu/components/category-form-dialog";
 import { DeleteDialog } from "@/modules/menu/components/delete-dialog";
 import { EditItemDialog } from "@/modules/menu/components/edit-item-dialog";
@@ -380,14 +381,16 @@ function ItemRow({
 
 function ItemsPanel({
   restaurantId,
+  menuId,
   categoryId,
   categoryName,
 }: {
   restaurantId: string;
+  menuId: string;
   categoryId: string;
   categoryName: string;
 }) {
-  const navigate = useNavigate();
+  const [addItemOpen, setAddItemOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -396,6 +399,7 @@ function ItemsPanel({
     null,
   );
 
+  const createMutation = useCreateMenuItem();
   const toggleMutation = useToggleMenuItemAvailability();
   const deleteMutation = useDeleteMenuItem();
 
@@ -428,7 +432,7 @@ function ItemsPanel({
             {total} item dalam kategori ini
           </p>
         </div>
-        <Button size="sm" onClick={() => navigate("/menu/add")}>
+        <Button size="sm" onClick={() => setAddItemOpen(true)}>
           <Plus className="size-4" />
           Add Item
         </Button>
@@ -516,6 +520,45 @@ function ItemsPanel({
         }}
         isPending={deleteMutation.isPending}
       />
+
+      <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
+        <DialogContent className="flex max-h-[85vh] sm:max-w-5xl flex-col gap-0 p-0">
+          <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b">
+            <DialogTitle>Add Item</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            <AddMenuItemForm
+              restaurantId={restaurantId}
+              formId="add-item-modal-form"
+              sidebarSide="right"
+              defaultValues={{ menu_id: menuId, category_id: categoryId }}
+              disabled={createMutation.isPending}
+              onSubmit={(values) => {
+                createMutation.mutate(
+                  { restaurantId, values },
+                  { onSuccess: () => setAddItemOpen(false) },
+                );
+              }}
+            />
+          </div>
+          <DialogFooter className="shrink-0 border-t px-6 py-4">
+            <Button
+              variant="outline"
+              onClick={() => setAddItemOpen(false)}
+              disabled={createMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="add-item-modal-form"
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? "Saving..." : "Save Item"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -727,6 +770,7 @@ export default function MenuCategoriesPage() {
           <ItemsPanel
             key={selectedCategoryId}
             restaurantId={restaurantId}
+            menuId={selectedMenuId ?? ""}
             categoryId={selectedCategoryId}
             categoryName={selectedCategory?.name ?? ""}
           />

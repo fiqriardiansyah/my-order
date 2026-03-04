@@ -95,7 +95,7 @@ export function EditItemDialog({ itemId, restaurantId, onClose }: Props) {
   return (
     <Dialog open={!!itemId} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="flex h-[85vh] sm:max-w-5xl flex-col gap-0 p-0"
+        className="flex max-h-[85vh] sm:max-w-5xl flex-col gap-0 p-0"
         showCloseButton={false}
       >
         <DialogHeader className="shrink-0 border-b px-6 py-4">
