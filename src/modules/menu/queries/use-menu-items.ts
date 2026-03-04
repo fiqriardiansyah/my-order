@@ -28,6 +28,24 @@ interface UseMenuItemsParams {
   status: StatusFilter;
   page: number;
   pageSize: number;
+  /** Active menu IDs used to filter out items from inactive menus. null = still loading (query stays disabled). */
+  activeMenuIds: string[] | null;
+}
+
+interface RawMenuItemResult {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  base_price: number;
+  is_available: boolean;
+  category: {
+    id: string;
+    name: string;
+    menu: { id: string; name: string } | null;
+  } | null;
+  menu_item_variants: { id: string }[];
+  menu_item_modifiers: { id: string }[];
 }
 
 export function useMenuItems({
@@ -38,6 +56,7 @@ export function useMenuItems({
   status,
   page,
   pageSize,
+  activeMenuIds,
 }: UseMenuItemsParams) {
   return useQuery({
     queryKey: [
@@ -49,15 +68,18 @@ export function useMenuItems({
       status,
       page,
       pageSize,
+      activeMenuIds,
     ],
-    enabled: !!restaurantId,
+    enabled: !!restaurantId && activeMenuIds !== null,
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // Use !inner when filtering by menu so the join acts as a WHERE clause
+      // User-selected menus take priority; otherwise fall back to all active menus
+      const effectiveMenuIds = menuIds.length > 0 ? menuIds : activeMenuIds!;
+
       const categoryJoin =
-        menuIds.length > 0
+        effectiveMenuIds.length > 0
           ? "category:menu_categories!inner(id, name, menu:menus(id, name))"
           : "category:menu_categories!menu_items_category_id_fkey(id, name, menu:menus(id, name))";
 
@@ -72,11 +94,12 @@ export function useMenuItems({
         )
         .eq("restaurant_id", restaurantId!)
         .is("deleted_at", null)
+        .eq("menu_categories.is_visible", true)
         .order("name")
         .range(from, to);
 
-      if (menuIds.length > 0) {
-        query = query.in("menu_categories.menu_id", menuIds);
+      if (effectiveMenuIds.length > 0) {
+        query = query.in("menu_categories.menu_id", effectiveMenuIds);
       }
       if (search.trim()) {
         query = query.ilike("name", `%${search.trim()}%`);
@@ -93,8 +116,7 @@ export function useMenuItems({
       const { data, count, error } = await query;
       if (error) throw error;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const items: MenuItemRow[] = (data ?? []).map((item: any) => ({
+      const items: MenuItemRow[] = ((data ?? []) as RawMenuItemResult[]).map((item) => ({
         id: item.id,
         name: item.name,
         description: item.description,
@@ -128,7 +150,7 @@ export function useMenus(restaurantId: string | null | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("menus")
-        .select("id, name, is_default")
+        .select("id, name, is_default, is_active")
         .eq("restaurant_id", restaurantId!)
         .is("deleted_at", null)
         .order("created_at");
@@ -140,20 +162,20 @@ export function useMenus(restaurantId: string | null | undefined) {
 
 export function useMenuCategories(
   restaurantId: string | null | undefined,
-  menuId: string | null = null,
+  menuIds: string[] | null = null,
 ) {
   return useQuery({
-    queryKey: ["menu-categories", restaurantId, menuId],
-    enabled: !!restaurantId,
+    queryKey: ["menu-categories", restaurantId, menuIds],
+    enabled: !!restaurantId && menuIds !== null,
     queryFn: async () => {
       let query = supabase
         .from("menu_categories")
-        .select("id, name")
+        .select("id, name, is_visible")
         .eq("restaurant_id", restaurantId!)
         .is("deleted_at", null)
         .order("sort_order");
-      if (menuId) {
-        query = query.eq("menu_id", menuId);
+      if (menuIds!.length > 0) {
+        query = query.in("menu_id", menuIds!);
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -242,6 +264,7 @@ export function useCreateMenu() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["menus"] });
+      queryClient.invalidateQueries({ queryKey: ["menus-with-count"] });
     },
   });
 }
@@ -281,6 +304,9 @@ export function useCreateMenuCategory() {
     onSuccess: (_data, { restaurantId, menuId }) => {
       queryClient.invalidateQueries({
         queryKey: ["menu-categories", restaurantId, menuId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["menu-categories-detail", restaurantId, menuId],
       });
     },
   });
@@ -385,28 +411,26 @@ export function useMenuItemDetail(id: string | null) {
         .is("deleted_at", null)
         .single();
       if (error) throw error;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const d = data as any;
       const detail: MenuItemDetail = {
-        id: d.id,
-        name: d.name,
-        description: d.description,
-        base_price: d.base_price,
-        image_url: d.image_url,
-        is_available: d.is_available,
-        is_featured: d.is_featured,
-        category_id: d.category_id,
-        menu_id: d.category?.menu_id ?? "",
-        variants: (d.menu_item_variants ?? [])
-          .sort((a: any, b: any) => a.sort_order - b.sort_order)
-          .map((v: any) => ({
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        base_price: data.base_price,
+        image_url: data.image_url,
+        is_available: data.is_available,
+        is_featured: data.is_featured,
+        category_id: data.category_id,
+        menu_id: data.category?.menu_id ?? "",
+        variants: data.menu_item_variants
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((v) => ({
             id: v.id,
             name: v.option_name,
             price_modifier: v.price_modifier,
           })),
-        modifiers: (d.menu_item_modifiers ?? [])
-          .sort((a: any, b: any) => a.sort_order - b.sort_order)
-          .map((m: any) => ({
+        modifiers: data.menu_item_modifiers
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((m) => ({
             id: m.id,
             name: m.name,
             price_modifier: m.price_modifier,
@@ -506,6 +530,190 @@ export function useDeleteMenuItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["menu-items"] });
+    },
+  });
+}
+
+// ─── menus with category count ────────────────────────────────────────────────
+
+export interface MenuWithCount {
+  id: string;
+  name: string;
+  is_active: boolean;
+  is_default: boolean;
+  category_count: number;
+}
+
+export function useMenusWithCount(restaurantId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["menus-with-count", restaurantId],
+    enabled: !!restaurantId,
+    queryFn: async () => {
+      const [menusRes, catsRes] = await Promise.all([
+        supabase
+          .from("menus")
+          .select("id, name, is_active, is_default")
+          .eq("restaurant_id", restaurantId!)
+          .is("deleted_at", null)
+          .order("created_at"),
+        supabase
+          .from("menu_categories")
+          .select("id, menu_id")
+          .eq("restaurant_id", restaurantId!)
+          .is("deleted_at", null),
+      ]);
+      if (menusRes.error) throw menusRes.error;
+      if (catsRes.error) throw catsRes.error;
+      const countByMenu = (catsRes.data ?? []).reduce<Record<string, number>>(
+        (acc, c) => ({ ...acc, [c.menu_id]: (acc[c.menu_id] ?? 0) + 1 }),
+        {},
+      );
+      return (menusRes.data ?? []).map((m) => ({
+        ...m,
+        category_count: countByMenu[m.id] ?? 0,
+      })) as MenuWithCount[];
+    },
+  });
+}
+
+export function useUpdateMenu() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      name,
+      is_active,
+    }: {
+      id: string;
+      name: string;
+      is_active: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("menus")
+        .update({ name, is_active, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["menus"] });
+      queryClient.invalidateQueries({ queryKey: ["menus-with-count"] });
+    },
+  });
+}
+
+export function useDeleteMenu() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("menus")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["menus"] });
+      queryClient.invalidateQueries({ queryKey: ["menus-with-count"] });
+    },
+  });
+}
+
+// ─── categories with detail + item count ─────────────────────────────────────
+
+export interface MenuCategoryDetail {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  is_visible: boolean;
+  sort_order: number;
+  item_count: number;
+}
+
+export function useMenuCategoriesDetail(
+  restaurantId: string | null | undefined,
+  menuId: string | null,
+) {
+  return useQuery({
+    queryKey: ["menu-categories-detail", restaurantId, menuId],
+    enabled: !!restaurantId && !!menuId,
+    queryFn: async () => {
+      const [catsRes, itemsRes] = await Promise.all([
+        supabase
+          .from("menu_categories")
+          .select("id, name, description, image_url, is_visible, sort_order")
+          .eq("restaurant_id", restaurantId!)
+          .eq("menu_id", menuId!)
+          .is("deleted_at", null)
+          .order("sort_order"),
+        supabase
+          .from("menu_items")
+          .select("id, category_id")
+          .eq("restaurant_id", restaurantId!)
+          .is("deleted_at", null),
+      ]);
+      if (catsRes.error) throw catsRes.error;
+      if (itemsRes.error) throw itemsRes.error;
+      const countByCat = (itemsRes.data ?? []).reduce<Record<string, number>>(
+        (acc, item) => ({
+          ...acc,
+          [item.category_id]: (acc[item.category_id] ?? 0) + 1,
+        }),
+        {},
+      );
+      return (catsRes.data ?? []).map((c) => ({
+        ...c,
+        item_count: countByCat[c.id] ?? 0,
+      })) as MenuCategoryDetail[];
+    },
+  });
+}
+
+export function useUpdateMenuCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      name,
+      description,
+      is_visible,
+    }: {
+      id: string;
+      name: string;
+      description?: string;
+      is_visible: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("menu_categories")
+        .update({
+          name,
+          description: description || null,
+          is_visible,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["menu-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["menu-categories-detail"] });
+    },
+  });
+}
+
+export function useDeleteMenuCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("menu_categories")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["menu-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["menu-categories-detail"] });
     },
   });
 }

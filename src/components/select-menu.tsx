@@ -12,6 +12,7 @@ export interface SelectMenuOption {
   label: string;
   /** Small right-aligned hint text, e.g. "Default" */
   meta?: string;
+  disabled?: boolean;
 }
 
 interface BaseProps {
@@ -167,10 +168,12 @@ export function SelectMenu(props: SelectMenuProps) {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => handleSelect(option.value)}
+                disabled={option.disabled}
+                onClick={() => !option.disabled && handleSelect(option.value)}
                 className={cn(
                   "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
                   isSelected(option.value) && "bg-accent/50",
+                  option.disabled && "cursor-not-allowed opacity-50 hover:bg-transparent hover:text-current",
                 )}
               >
                 <span className="flex items-center gap-2">

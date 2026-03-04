@@ -66,6 +66,11 @@ export default function MenuPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  const { data: menus = [], isLoading: menusLoading } = useMenus(restaurantId);
+  const activeMenuIds = menusLoading
+    ? null
+    : menus.filter((m) => m.is_active).map((m) => m.id);
+
   const { data, isLoading } = useMenuItems({
     restaurantId,
     menuIds,
@@ -74,12 +79,11 @@ export default function MenuPage() {
     status,
     page,
     pageSize,
+    activeMenuIds,
   });
-
-  const { data: menus = [] } = useMenus(restaurantId);
   const { data: categories = [] } = useMenuCategories(
     restaurantId,
-    menuIds.length === 1 ? menuIds[0] : null,
+    menuIds.length > 0 ? menuIds : activeMenuIds,
   );
   const toggleMutation = useToggleMenuItemAvailability();
   const deleteMutation = useDeleteMenuItem();
@@ -154,7 +158,8 @@ export default function MenuPage() {
           options={menus.map((m) => ({
             value: m.id,
             label: m.name,
-            meta: m.is_default ? "Default" : undefined,
+            meta: !m.is_active ? "Inactive" : m.is_default ? "Default" : undefined,
+            disabled: !m.is_active,
           }))}
           value={menuIds}
           onValueChange={handleMenuChange}
@@ -165,7 +170,12 @@ export default function MenuPage() {
 
         <SelectMenu
           multiple
-          options={categories.map((c) => ({ value: c.id, label: c.name }))}
+          options={categories.map((c) => ({
+            value: c.id,
+            label: c.name,
+            meta: !c.is_visible ? "Inactive" : undefined,
+            disabled: !c.is_visible,
+          }))}
           value={categoryIds}
           onValueChange={handleCategoryChange}
           placeholder="Semua Kategori"
