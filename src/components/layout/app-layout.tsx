@@ -6,12 +6,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { SidebarInsetSizeProvider } from "@/components/layout/sidebar-inset-context";
 import {
   OnboardingProvider,
   useOnboarding,
 } from "@/modules/on-boarding/context";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
 import OnBoardingPage from "@/pages/on-boarding";
+import { useElementSize } from "@/hooks/use-element-size";
 
 export function AppContent() {
   const { data, isLoading } = useOnboardingStatus();
@@ -36,14 +38,18 @@ export function AppContent() {
 
 // Inner component lives inside SidebarProvider so it can call useSidebar.
 function AppInset() {
+  const { ref, size } = useElementSize<HTMLElement>();
+
   return (
-    <SidebarInset className="overflow-y-auto">
-      <header className=" z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background px-4">
-        <SidebarTrigger />
-      </header>
-      <div className="flex flex-1 flex-col overflow-x-hidden w-full">
-        <Outlet />
-      </div>
+    <SidebarInset ref={ref} className="overflow-hidden">
+      <SidebarInsetSizeProvider size={size}>
+        <header className=" z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background px-4">
+          <SidebarTrigger />
+        </header>
+        <div className="flex flex-1 min-h-0 flex-col overflow-x-hidden overflow-y-auto w-full">
+          <Outlet />
+        </div>
+      </SidebarInsetSizeProvider>
     </SidebarInset>
   );
 }

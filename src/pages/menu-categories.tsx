@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Eye,
   EyeOff,
@@ -572,251 +572,276 @@ export default function MenuCategoriesPage() {
   const selectedMenu = menus.find((m) => m.id === selectedMenuId);
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelTop, setPanelTop] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const measure = () => setPanelTop(el.getBoundingClientRect().top);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div className="flex h-[calc(100svh-3rem)]">
-      {/* ── Left: Menus ────────────────────────────── */}
-      <div className="flex w-52 shrink-0 flex-col border-r">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">Menus</span>
-            {menus.length > 0 && (
-              <Badge
-                variant="secondary"
-                className="h-5 min-w-5 rounded-full px-1.5 text-xs"
-              >
-                {menus.length}
-              </Badge>
+    <div className="">
+      <div className="p-5">
+        <h1 className="text-xl font-bold leading-tight">
+          Menu Kategori Manager
+        </h1>
+      </div>
+      <div
+        ref={panelRef}
+        className="flex overflow-hidden"
+        style={{ height: `calc(100vh - ${panelTop}px)` }}
+      >
+        {/* ── Left: Menus ────────────────────────────── */}
+        <div className="flex w-[25%] shrink-0 flex-col border-r">
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold">Menus</span>
+              {menus.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="h-5 min-w-5 rounded-full px-1.5 text-xs"
+                >
+                  {menus.length}
+                </Badge>
+              )}
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7"
+              onClick={() => setMenuDialog({ open: true })}
+            >
+              <Plus className="size-4" />
+            </Button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto py-2">
+            {menusLoading ? (
+              <div className="space-y-1.5 px-2">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-muted h-14 animate-pulse rounded-md"
+                  />
+                ))}
+              </div>
+            ) : menus.length === 0 ? (
+              <p className="text-muted-foreground px-4 py-6 text-center text-xs">
+                Belum ada menu.
+              </p>
+            ) : (
+              menus.map((menu) => (
+                <MenuListItem
+                  key={menu.id}
+                  menu={menu}
+                  isSelected={menu.id === selectedMenuId}
+                  onSelect={() => handleMenuSelect(menu.id)}
+                  onEdit={() => setMenuDialog({ open: true, menu })}
+                  onDelete={() => setMenuDeleteTarget(menu)}
+                  onToggleActive={() =>
+                    updateMenuMutation.mutate({
+                      id: menu.id,
+                      name: menu.name,
+                      is_active: !menu.is_active,
+                    })
+                  }
+                />
+              ))
             )}
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="size-7"
-            onClick={() => setMenuDialog({ open: true })}
-          >
-            <Plus className="size-4" />
-          </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-2">
-          {menusLoading ? (
-            <div className="space-y-1.5 px-2">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-muted h-14 animate-pulse rounded-md"
-                />
-              ))}
+        {/* ── Middle: Categories ──────────────────────── */}
+        <div className="flex w-[25%] shrink-0 flex-col border-r">
+          <div className="border-b px-4 py-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold">Categories</span>
+              {selectedMenuId && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-7"
+                  onClick={() => setCatDialog({ open: true })}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              )}
             </div>
-          ) : menus.length === 0 ? (
-            <p className="text-muted-foreground px-4 py-6 text-center text-xs">
-              Belum ada menu.
-            </p>
-          ) : (
-            menus.map((menu) => (
-              <MenuListItem
-                key={menu.id}
-                menu={menu}
-                isSelected={menu.id === selectedMenuId}
-                onSelect={() => handleMenuSelect(menu.id)}
-                onEdit={() => setMenuDialog({ open: true, menu })}
-                onDelete={() => setMenuDeleteTarget(menu)}
-                onToggleActive={() =>
-                  updateMenuMutation.mutate({
-                    id: menu.id,
-                    name: menu.name,
-                    is_active: !menu.is_active,
-                  })
-                }
-              />
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* ── Middle: Categories ──────────────────────── */}
-      <div className="flex w-60 shrink-0 flex-col border-r">
-        <div className="border-b px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">Categories</span>
-            {selectedMenuId && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-7"
-                onClick={() => setCatDialog({ open: true })}
-              >
-                <Plus className="size-4" />
-              </Button>
+            {selectedMenu && (
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                {selectedMenu.name} &bull; {selectedMenu.category_count}{" "}
+                Kategori
+              </p>
             )}
           </div>
-          {selectedMenu && (
-            <p className="text-muted-foreground mt-0.5 text-xs">
-              {selectedMenu.name} &bull; {selectedMenu.category_count} Kategori
-            </p>
-          )}
-        </div>
 
-        <div className="flex-1 overflow-y-auto py-2">
-          {!selectedMenuId ? (
-            <p className="text-muted-foreground px-4 py-6 text-center text-xs">
-              Pilih menu terlebih dahulu.
-            </p>
-          ) : catsLoading ? (
-            <div className="space-y-1.5 px-2">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-muted h-14 animate-pulse rounded-md"
+          <div className="flex-1 overflow-y-auto py-2">
+            {!selectedMenuId ? (
+              <p className="text-muted-foreground px-4 py-6 text-center text-xs">
+                Pilih menu terlebih dahulu.
+              </p>
+            ) : catsLoading ? (
+              <div className="space-y-1.5 px-2">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-muted h-14 animate-pulse rounded-md"
+                  />
+                ))}
+              </div>
+            ) : categories.length === 0 ? (
+              <p className="text-muted-foreground px-4 py-6 text-center text-xs">
+                Belum ada kategori.
+              </p>
+            ) : (
+              categories.map((cat) => (
+                <CategoryListItem
+                  key={cat.id}
+                  category={cat}
+                  isSelected={cat.id === selectedCategoryId}
+                  onSelect={() => setSelectedCategoryId(cat.id)}
+                  onEdit={() => setCatDialog({ open: true, category: cat })}
+                  onDelete={() => setCatDeleteTarget(cat)}
+                  onToggleVisible={() =>
+                    updateCatMutation.mutate({
+                      id: cat.id,
+                      name: cat.name,
+                      description: cat.description ?? undefined,
+                      is_visible: !cat.is_visible,
+                    })
+                  }
                 />
-              ))}
-            </div>
-          ) : categories.length === 0 ? (
-            <p className="text-muted-foreground px-4 py-6 text-center text-xs">
-              Belum ada kategori.
-            </p>
-          ) : (
-            categories.map((cat) => (
-              <CategoryListItem
-                key={cat.id}
-                category={cat}
-                isSelected={cat.id === selectedCategoryId}
-                onSelect={() => setSelectedCategoryId(cat.id)}
-                onEdit={() => setCatDialog({ open: true, category: cat })}
-                onDelete={() => setCatDeleteTarget(cat)}
-                onToggleVisible={() =>
-                  updateCatMutation.mutate({
-                    id: cat.id,
-                    name: cat.name,
-                    description: cat.description ?? undefined,
-                    is_visible: !cat.is_visible,
-                  })
-                }
-              />
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* ── Right: Items ─────────────────────────────── */}
-      {selectedCategoryId && restaurantId ? (
-        <ItemsPanel
-          key={selectedCategoryId}
-          restaurantId={restaurantId}
-          categoryId={selectedCategoryId}
-          categoryName={selectedCategory?.name ?? ""}
-        />
-      ) : (
-        <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
-          {selectedMenuId
-            ? "Pilih kategori untuk melihat item."
-            : "Pilih menu lalu kategori."}
-        </div>
-      )}
-
-      {/* ── Dialogs ──────────────────────────────────── */}
-      {restaurantId && (
-        <>
-          <MenuFormDialog
-            open={menuDialog.open}
-            onClose={() => setMenuDialog({ open: false })}
+        {/* ── Right: Items ─────────────────────────────── */}
+        {selectedCategoryId && restaurantId ? (
+          <ItemsPanel
+            key={selectedCategoryId}
             restaurantId={restaurantId}
-            menu={menuDialog.menu}
+            categoryId={selectedCategoryId}
+            categoryName={selectedCategory?.name ?? ""}
           />
+        ) : (
+          <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
+            {selectedMenuId
+              ? "Pilih kategori untuk melihat item."
+              : "Pilih menu lalu kategori."}
+          </div>
+        )}
 
-          {selectedMenuId && (
-            <CategoryFormDialog
-              open={catDialog.open}
-              onClose={() => setCatDialog({ open: false })}
+        {/* ── Dialogs ──────────────────────────────────── */}
+        {restaurantId && (
+          <>
+            <MenuFormDialog
+              open={menuDialog.open}
+              onClose={() => setMenuDialog({ open: false })}
               restaurantId={restaurantId}
-              menuId={selectedMenuId}
-              category={catDialog.category}
+              menu={menuDialog.menu}
             />
-          )}
 
-          {/* Delete menu confirmation */}
-          <Dialog
-            open={!!menuDeleteTarget}
-            onOpenChange={(o) => !o && setMenuDeleteTarget(null)}
-          >
-            <DialogContent className="sm:max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Hapus menu?</DialogTitle>
-                <DialogDescription>
-                  <strong>{menuDeleteTarget?.name}</strong> akan dihapus.
-                  Kategori dan item di dalamnya tidak akan ikut terhapus.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setMenuDeleteTarget(null)}
-                  disabled={deleteMenuMutation.isPending}
-                >
-                  Batal
-                </Button>
-                <Button
-                  variant="destructive"
-                  disabled={deleteMenuMutation.isPending}
-                  onClick={() => {
-                    if (!menuDeleteTarget) return;
-                    deleteMenuMutation.mutate(menuDeleteTarget.id, {
-                      onSuccess: () => {
-                        setMenuDeleteTarget(null);
-                        if (selectedMenuId === menuDeleteTarget.id)
-                          setSelectedMenuId(null);
-                      },
-                    });
-                  }}
-                >
-                  {deleteMenuMutation.isPending ? "Menghapus..." : "Hapus"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            {selectedMenuId && (
+              <CategoryFormDialog
+                open={catDialog.open}
+                onClose={() => setCatDialog({ open: false })}
+                restaurantId={restaurantId}
+                menuId={selectedMenuId}
+                category={catDialog.category}
+              />
+            )}
 
-          {/* Delete category confirmation */}
-          <Dialog
-            open={!!catDeleteTarget}
-            onOpenChange={(o) => !o && setCatDeleteTarget(null)}
-          >
-            <DialogContent className="sm:max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Hapus kategori?</DialogTitle>
-                <DialogDescription>
-                  <strong>{catDeleteTarget?.name}</strong> akan dihapus. Item
-                  dalam kategori ini tidak akan ikut terhapus.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setCatDeleteTarget(null)}
-                  disabled={deleteCatMutation.isPending}
-                >
-                  Batal
-                </Button>
-                <Button
-                  variant="destructive"
-                  disabled={deleteCatMutation.isPending}
-                  onClick={() => {
-                    if (!catDeleteTarget) return;
-                    deleteCatMutation.mutate(catDeleteTarget.id, {
-                      onSuccess: () => {
-                        setCatDeleteTarget(null);
-                        if (selectedCategoryId === catDeleteTarget.id)
-                          setSelectedCategoryId(null);
-                      },
-                    });
-                  }}
-                >
-                  {deleteCatMutation.isPending ? "Menghapus..." : "Hapus"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </>
-      )}
+            {/* Delete menu confirmation */}
+            <Dialog
+              open={!!menuDeleteTarget}
+              onOpenChange={(o) => !o && setMenuDeleteTarget(null)}
+            >
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Hapus menu?</DialogTitle>
+                  <DialogDescription>
+                    <strong>{menuDeleteTarget?.name}</strong> akan dihapus.
+                    Kategori dan item di dalamnya tidak akan ikut terhapus.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setMenuDeleteTarget(null)}
+                    disabled={deleteMenuMutation.isPending}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={deleteMenuMutation.isPending}
+                    onClick={() => {
+                      if (!menuDeleteTarget) return;
+                      deleteMenuMutation.mutate(menuDeleteTarget.id, {
+                        onSuccess: () => {
+                          setMenuDeleteTarget(null);
+                          if (selectedMenuId === menuDeleteTarget.id)
+                            setSelectedMenuId(null);
+                        },
+                      });
+                    }}
+                  >
+                    {deleteMenuMutation.isPending ? "Menghapus..." : "Hapus"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete category confirmation */}
+            <Dialog
+              open={!!catDeleteTarget}
+              onOpenChange={(o) => !o && setCatDeleteTarget(null)}
+            >
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Hapus kategori?</DialogTitle>
+                  <DialogDescription>
+                    <strong>{catDeleteTarget?.name}</strong> akan dihapus. Item
+                    dalam kategori ini tidak akan ikut terhapus.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCatDeleteTarget(null)}
+                    disabled={deleteCatMutation.isPending}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={deleteCatMutation.isPending}
+                    onClick={() => {
+                      if (!catDeleteTarget) return;
+                      deleteCatMutation.mutate(catDeleteTarget.id, {
+                        onSuccess: () => {
+                          setCatDeleteTarget(null);
+                          if (selectedCategoryId === catDeleteTarget.id)
+                            setSelectedCategoryId(null);
+                        },
+                      });
+                    }}
+                  >
+                    {deleteCatMutation.isPending ? "Menghapus..." : "Hapus"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
+      </div>
     </div>
   );
 }
