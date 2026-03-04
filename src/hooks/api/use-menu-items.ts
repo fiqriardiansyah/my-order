@@ -396,3 +396,35 @@ export function useDeleteMenuItem() {
     },
   });
 }
+
+export function useDeleteManyMenuItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("menu_items")
+        .update({ deleted_at: new Date().toISOString() })
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["menu-items"] });
+    },
+  });
+}
+
+export function useBulkUpdateMenuItemAvailability() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, is_available }: { ids: string[]; is_available: boolean }) => {
+      const { error } = await supabase
+        .from("menu_items")
+        .update({ is_available, updated_at: new Date().toISOString() })
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["menu-items"] });
+    },
+  });
+}

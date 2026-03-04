@@ -11,6 +11,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -48,12 +49,15 @@ import {
   useUpdateMenuCategory,
 } from "@/hooks/api/use-menu-categories";
 import {
+  useBulkUpdateMenuItemAvailability,
   useCreateMenuItem,
+  useDeleteManyMenuItems,
   useDeleteMenuItem,
   useMenuItems,
   useToggleMenuItemAvailability,
 } from "@/hooks/api/use-menu-items";
 import { AddMenuItemForm } from "@/modules/menu/components/add-menu-item-form";
+import { BulkActionBar } from "@/modules/menu/components/bulk-action-bar";
 import { CategoryFormDialog } from "@/modules/menu/components/category-form-dialog";
 import { DeleteDialog } from "@/modules/menu/components/delete-dialog";
 import { EditItemDialog } from "@/modules/menu/components/edit-item-dialog";
@@ -315,17 +319,26 @@ function CategoryListItem({
 
 function ItemRow({
   item,
+  isSelected,
+  onSelectChange,
   onEdit,
   onDelete,
   onToggle,
 }: {
   item: MenuItemRow;
+  isSelected: boolean;
+  onSelectChange: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: (checked: boolean) => void;
 }) {
   return (
     <div className="flex items-center gap-4 border-b px-5 py-3 last:border-b-0">
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={onSelectChange}
+        aria-label={`Pilih ${item.name}`}
+      />
       <ItemImage url={item.image_url} name={item.name} />
 
       <div className="min-w-0 flex-1">
@@ -395,13 +408,14 @@ function ItemsPanel({
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [editTargetId, setEditTargetId] = useState<string | null>(null);
-  const [itemDeleteTarget, setItemDeleteTarget] = useState<MenuItemRow | null>(
-    null,
-  );
+  const [itemDeleteTarget, setItemDeleteTarget] = useState<MenuItemRow | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const createMutation = useCreateMenuItem();
   const toggleMutation = useToggleMenuItemAvailability();
   const deleteMutation = useDeleteMenuItem();
+  const deleteManyMutation = useDeleteManyMenuItems();
+  const bulkUpdateMutation = useBulkUpdateMenuItemAvailability();
 
   const { data, isLoading } = useMenuItems({
     restaurantId,
@@ -415,12 +429,34 @@ function ItemsPanel({
   });
 
   useEffect(() => {
-    const t = setTimeout(() => setSearch(searchInput), 300);
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setSelectedIds(new Set());
+    }, 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
+
+  const allSelected = items.length > 0 && items.every((i) => selectedIds.has(i.id));
+  const someSelected = items.some((i) => selectedIds.has(i.id));
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map((i) => i.id)));
+    }
+  }
+
+  function toggleSelectItem(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -440,6 +476,12 @@ function ItemsPanel({
 
       {/* toolbar */}
       <div className="flex items-center gap-3 border-b px-5 py-2.5">
+        <Checkbox
+          checked={allSelected ? true : someSelected ? "indeterminate" : false}
+          onCheckedChange={toggleSelectAll}
+          disabled={isLoading || items.length === 0}
+          aria-label="Pilih semua"
+        />
         <div className="relative flex-1">
           <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
@@ -451,7 +493,7 @@ function ItemsPanel({
         </div>
         <Tabs
           value={status}
-          onValueChange={(v) => setStatus(v as StatusFilter)}
+          onValueChange={(v) => { setStatus(v as StatusFilter); setSelectedIds(new Set()); }}
         >
           <TabsList className="h-8">
             <TabsTrigger value="all" className="text-xs">
@@ -467,6 +509,35 @@ function ItemsPanel({
         </Tabs>
       </div>
 
+      {/* bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="border-b px-5 py-2">
+          <BulkActionBar
+            selectedCount={selectedIds.size}
+            onClearSelection={() => setSelectedIds(new Set())}
+            onDeleteMany={() =>
+              deleteManyMutation.mutate(Array.from(selectedIds), {
+                onSuccess: () => setSelectedIds(new Set()),
+              })
+            }
+            onMarkAvailable={() =>
+              bulkUpdateMutation.mutate(
+                { ids: Array.from(selectedIds), is_available: true },
+                { onSuccess: () => setSelectedIds(new Set()) },
+              )
+            }
+            onMarkUnavailable={() =>
+              bulkUpdateMutation.mutate(
+                { ids: Array.from(selectedIds), is_available: false },
+                { onSuccess: () => setSelectedIds(new Set()) },
+              )
+            }
+            isDeleting={deleteManyMutation.isPending}
+            isUpdating={bulkUpdateMutation.isPending}
+          />
+        </div>
+      )}
+
       {/* items list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
@@ -476,6 +547,7 @@ function ItemsPanel({
                 key={i}
                 className="flex items-center gap-4 border-b px-5 py-3"
               >
+                <div className="bg-muted size-4 shrink-0 animate-pulse rounded" />
                 <div className="bg-muted size-10 shrink-0 animate-pulse rounded-md" />
                 <div className="flex-1 space-y-1.5">
                   <div className="bg-muted h-4 w-40 animate-pulse rounded" />
@@ -494,6 +566,8 @@ function ItemsPanel({
             <ItemRow
               key={item.id}
               item={item}
+              isSelected={selectedIds.has(item.id)}
+              onSelectChange={() => toggleSelectItem(item.id)}
               onEdit={() => setEditTargetId(item.id)}
               onDelete={() => setItemDeleteTarget(item)}
               onToggle={(checked) =>

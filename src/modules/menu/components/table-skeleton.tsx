@@ -7,6 +7,9 @@ export function TableSkeleton({ rows = 10 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, i) => (
         <TableRow key={i}>
           <TableCell>
+            <Skeleton className="size-4 rounded" />
+          </TableCell>
+          <TableCell>
             <div className="flex items-center gap-3">
               <Skeleton className="size-10 shrink-0 rounded-md" />
               <div className="space-y-1.5">

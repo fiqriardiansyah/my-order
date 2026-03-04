@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -21,10 +22,13 @@ import { useMenus } from "@/hooks/api/use-menus";
 import { useMenuCategories } from "@/hooks/api/use-menu-categories";
 import type { MenuItemRow, StatusFilter } from "@/@types/menu";
 import {
+  useBulkUpdateMenuItemAvailability,
+  useDeleteManyMenuItems,
   useDeleteMenuItem,
   useMenuItems,
   useToggleMenuItemAvailability,
 } from "@/hooks/api/use-menu-items";
+import { BulkActionBar } from "@/modules/menu/components/bulk-action-bar";
 import { CountBadge } from "@/modules/menu/components/count-badge";
 import { DeleteDialog } from "@/modules/menu/components/delete-dialog";
 import { EditItemDialog } from "@/modules/menu/components/edit-item-dialog";
@@ -52,15 +56,19 @@ export default function MenuPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   // edit / delete dialog
   const [editTargetId, setEditTargetId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MenuItemRow | null>(null);
 
-  // debounce search input → reset to page 1
+  // debounce search input → reset to page 1 and clear selection
   useEffect(() => {
     const t = setTimeout(() => {
       setSearch(searchInput);
       setPage(1);
+      setSelectedIds(new Set());
     }, 300);
     return () => clearTimeout(t);
   }, [searchInput]);
@@ -86,6 +94,8 @@ export default function MenuPage() {
   );
   const toggleMutation = useToggleMenuItemAvailability();
   const deleteMutation = useDeleteMenuItem();
+  const deleteManyMutation = useDeleteManyMenuItems();
+  const bulkUpdateMutation = useBulkUpdateMenuItemAvailability();
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -93,25 +103,66 @@ export default function MenuPage() {
   const rangeFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeTo = Math.min(page * pageSize, total);
 
+  // selection helpers
+  const currentPageIds = items.map((i) => i.id);
+  const allCurrentPageSelected =
+    currentPageIds.length > 0 &&
+    currentPageIds.every((id) => selectedIds.has(id));
+  const someCurrentPageSelected = currentPageIds.some((id) =>
+    selectedIds.has(id),
+  );
+
+  function toggleSelectAll() {
+    if (allCurrentPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        currentPageIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        currentPageIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+  }
+
+  function toggleSelectItem(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
   function handleMenuChange(values: string[]) {
     setMenuIds(values);
     setCategoryIds([]);
     setPage(1);
+    setSelectedIds(new Set());
   }
 
   function handleCategoryChange(values: string[]) {
     setCategoryIds(values);
     setPage(1);
+    setSelectedIds(new Set());
   }
 
   function handleStatusChange(value: string) {
     setStatus(value as StatusFilter);
     setPage(1);
+    setSelectedIds(new Set());
   }
 
   function handlePageSizeChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setPageSize(Number(e.target.value));
     setPage(1);
+    setSelectedIds(new Set());
   }
 
   function handleDeleteConfirm() {
@@ -119,6 +170,27 @@ export default function MenuPage() {
     deleteMutation.mutate(deleteTarget.id, {
       onSuccess: () => setDeleteTarget(null),
     });
+  }
+
+  function handleDeleteMany() {
+    const ids = Array.from(selectedIds);
+    deleteManyMutation.mutate(ids, {
+      onSuccess: () => setSelectedIds(new Set()),
+    });
+  }
+
+  function handleBulkMarkAvailable() {
+    bulkUpdateMutation.mutate(
+      { ids: Array.from(selectedIds), is_available: true },
+      { onSuccess: () => setSelectedIds(new Set()) },
+    );
+  }
+
+  function handleBulkMarkUnavailable() {
+    bulkUpdateMutation.mutate(
+      { ids: Array.from(selectedIds), is_available: false },
+      { onSuccess: () => setSelectedIds(new Set()) },
+    );
   }
 
   // show up to 5 page numbers around the current page
@@ -195,11 +267,36 @@ export default function MenuPage() {
         </Tabs>
       </div>
 
+      {/* bulk action bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClearSelection={() => setSelectedIds(new Set())}
+        onDeleteMany={handleDeleteMany}
+        onMarkAvailable={handleBulkMarkAvailable}
+        onMarkUnavailable={handleBulkMarkUnavailable}
+        isDeleting={deleteManyMutation.isPending}
+        isUpdating={bulkUpdateMutation.isPending}
+      />
+
       {/* table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={
+                    allCurrentPageSelected
+                      ? true
+                      : someCurrentPageSelected
+                        ? "indeterminate"
+                        : false
+                  }
+                  onCheckedChange={toggleSelectAll}
+                  disabled={isLoading || items.length === 0}
+                  aria-label="Pilih semua di halaman ini"
+                />
+              </TableHead>
               <TableHead className="w-75">Nama &amp; Deskripsi</TableHead>
               <TableHead>Kategori</TableHead>
               <TableHead>Harga Dasar</TableHead>
@@ -215,7 +312,7 @@ export default function MenuPage() {
             ) : items.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-muted-foreground py-16 text-center"
                 >
                   Tidak ada menu item ditemukan.
@@ -223,7 +320,18 @@ export default function MenuPage() {
               </TableRow>
             ) : (
               items.map((item) => (
-                <TableRow key={item.id}>
+                <TableRow
+                  key={item.id}
+                  data-state={selectedIds.has(item.id) ? "selected" : undefined}
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(item.id)}
+                      onCheckedChange={() => toggleSelectItem(item.id)}
+                      aria-label={`Pilih ${item.name}`}
+                    />
+                  </TableCell>
+
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <ItemImage url={item.image_url} name={item.name} />
@@ -342,7 +450,7 @@ export default function MenuPage() {
               size="icon"
               className="size-8"
               disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
+              onClick={() => { setPage((p) => p - 1); setSelectedIds(new Set()); }}
               aria-label="Halaman sebelumnya"
             >
               ‹
@@ -354,7 +462,7 @@ export default function MenuPage() {
                 variant={n === page ? "default" : "outline"}
                 size="icon"
                 className="size-8 text-sm"
-                onClick={() => setPage(n)}
+                onClick={() => { setPage(n); setSelectedIds(new Set()); }}
               >
                 {n}
               </Button>
@@ -365,7 +473,7 @@ export default function MenuPage() {
               size="icon"
               className="size-8"
               disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => { setPage((p) => p + 1); setSelectedIds(new Set()); }}
               aria-label="Halaman berikutnya"
             >
               ›
