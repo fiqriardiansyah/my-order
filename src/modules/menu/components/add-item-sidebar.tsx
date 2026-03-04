@@ -15,7 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SelectMenu } from "@/components/select-menu";
-import { useCreateMenu, useCreateMenuCategory } from "@/modules/menu/queries/use-menu-items";
+import { useCreateMenu } from "@/hooks/api/use-menus";
+import { useCreateMenuCategory } from "@/hooks/api/use-menu-categories";
 import type { MenuItemFormValues } from "../schemas/menu-item.schema";
 
 interface Menu {

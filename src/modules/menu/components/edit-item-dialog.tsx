@@ -13,7 +13,7 @@ import {
 import {
   useMenuItemDetail,
   useUpdateMenuItem,
-} from "@/modules/menu/queries/use-menu-items";
+} from "@/hooks/api/use-menu-items";
 import type { MenuItemFormValues } from "@/modules/menu/schemas/menu-item.schema";
 import { AddMenuItemForm } from "./add-menu-item-form";
 

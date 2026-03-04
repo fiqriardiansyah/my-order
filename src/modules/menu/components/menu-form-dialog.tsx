@@ -18,7 +18,7 @@ import {
   useCreateMenu,
   useUpdateMenu,
   type MenuWithCount,
-} from "@/modules/menu/queries/use-menu-items";
+} from "@/hooks/api/use-menus";
 
 const schema = z.object({
   name: z.string().min(1, "Nama menu wajib diisi"),

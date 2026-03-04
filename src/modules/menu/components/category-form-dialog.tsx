@@ -18,7 +18,7 @@ import {
   useCreateMenuCategory,
   useUpdateMenuCategory,
   type MenuCategoryDetail,
-} from "@/modules/menu/queries/use-menu-items";
+} from "@/hooks/api/use-menu-categories";
 
 const schema = z.object({
   name: z.string().min(1, "Nama kategori wajib diisi"),

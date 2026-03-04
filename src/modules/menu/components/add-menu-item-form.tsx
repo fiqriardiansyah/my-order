@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { AddItemSidebar } from "./add-item-sidebar";
 import { ModifiersField } from "./modifiers-field";
 import { VariantsField } from "./variants-field";
-import { useMenuCategories, useMenus } from "@/modules/menu/queries/use-menu-items";
+import { useMenus } from "@/hooks/api/use-menus";
+import { useMenuCategories } from "@/hooks/api/use-menu-categories";
 import {
   menuItemSchema,
   type MenuItemFormValues,

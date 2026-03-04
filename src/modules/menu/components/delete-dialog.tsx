@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { MenuItemRow } from "../queries/use-menu-items";
+import type { MenuItemRow } from "@/hooks/api/use-menu-items";
 
 interface DeleteDialogProps {
   item: MenuItemRow | null;

@@ -26,19 +26,23 @@ import { cn } from "@/lib/utils";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
 import {
   useDeleteMenu,
-  useDeleteMenuCategory,
-  useDeleteMenuItem,
-  useMenuCategoriesDetail,
-  useMenuItems,
   useMenusWithCount,
-  useToggleMenuItemAvailability,
   useUpdateMenu,
+  type MenuWithCount,
+} from "@/hooks/api/use-menus";
+import {
+  useDeleteMenuCategory,
+  useMenuCategoriesDetail,
   useUpdateMenuCategory,
   type MenuCategoryDetail,
+} from "@/hooks/api/use-menu-categories";
+import {
+  useDeleteMenuItem,
+  useMenuItems,
+  useToggleMenuItemAvailability,
   type MenuItemRow,
-  type MenuWithCount,
   type StatusFilter,
-} from "@/modules/menu/queries/use-menu-items";
+} from "@/hooks/api/use-menu-items";
 import { CategoryFormDialog } from "@/modules/menu/components/category-form-dialog";
 import { DeleteDialog } from "@/modules/menu/components/delete-dialog";
 import { EditItemDialog } from "@/modules/menu/components/edit-item-dialog";

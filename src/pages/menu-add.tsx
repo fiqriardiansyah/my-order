@@ -5,7 +5,7 @@ import { ArrowLeft, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AddMenuItemForm } from "@/modules/menu/components/add-menu-item-form";
-import { useCreateMenuItem } from "@/modules/menu/queries/use-menu-items";
+import { useCreateMenuItem } from "@/hooks/api/use-menu-items";
 import type { MenuItemFormValues } from "@/modules/menu/schemas/menu-item.schema";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
 

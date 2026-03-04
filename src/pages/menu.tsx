@@ -17,15 +17,15 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SelectMenu } from "@/components/select-menu";
 import { useOnboardingStatus } from "@/modules/on-boarding/hooks/use-onboarding-status";
+import { useMenus } from "@/hooks/api/use-menus";
+import { useMenuCategories } from "@/hooks/api/use-menu-categories";
 import {
   useDeleteMenuItem,
-  useMenuCategories,
   useMenuItems,
-  useMenus,
   useToggleMenuItemAvailability,
   type MenuItemRow,
   type StatusFilter,
-} from "@/modules/menu/queries/use-menu-items";
+} from "@/hooks/api/use-menu-items";
 import { CountBadge } from "@/modules/menu/components/count-badge";
 import { DeleteDialog } from "@/modules/menu/components/delete-dialog";
 import { EditItemDialog } from "@/modules/menu/components/edit-item-dialog";
